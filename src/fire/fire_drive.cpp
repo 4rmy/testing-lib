@@ -1,5 +1,9 @@
 #include "fire.h"
+#include "pros/misc.hpp"
+#include "pros/rtos.h"
+#include <string>
 
+// DRIVE CONTROLS
 void fire::drive::tank_control() {
     // get speeds from analog sticks
     int left_speed = fire::cont.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
@@ -23,12 +27,12 @@ void fire::drive::split_arcade() {
 
     // apply left speed to left motors
     for (int i = 0; i < left_drive.size(); i++) {
-        left_drive[i] = fwd_rev - left_right;
+        left_drive[i] = fwd_rev + left_right;
     }
 
     // apply right speed to right motors
     for (int i = 0; i < right_drive.size(); i++) {
-        right_drive[i] = fwd_rev + left_right;
+        right_drive[i] = fwd_rev - left_right;
     }
 }
 
@@ -39,11 +43,98 @@ void fire::drive::split_arcade_flipped() {
 
     // apply left speed to left motors
     for (int i = 0; i < left_drive.size(); i++) {
-        left_drive[i] = fwd_rev - left_right;
+        left_drive[i] = fwd_rev + left_right;
     }
 
     // apply right speed to right motors
     for (int i = 0; i < right_drive.size(); i++) {
-        right_drive[i] = fwd_rev + left_right;
+        right_drive[i] = fwd_rev - left_right;
+    }
+}
+
+// AUTONOMOUS PID CONTROLS
+
+void fire::drive::init_pids() {
+    for (int i = 0; i < this->left_drive.size(); i++) {
+        this->left_drive[i].tare_position();
+    }
+    for (int i = 0; i < this->right_drive.size(); i++) {
+        this->right_drive[i].tare_position();
+    }
+    pros::Task(this->drive_pid_task, (void*)this, TASK_PRIORITY_DEFAULT, TASK_STACK_DEPTH_DEFAULT, "PID Task");
+}
+
+/*
+        DRIVE PID TASK
+*/
+void fire::drive::drive_pid_task(void *c) {
+
+    while (pros::competition::is_autonomous()) {
+        if (((fire::drive*)c)->current_pid_state == fire::drive::pid_state::Drive) {
+            // compute drive pids
+        }
+        pros::delay(fire::delay);
+    }
+}
+/*
+        DRIVE PID TASK
+*/
+
+void fire::drive::stop_pid() {
+    this->current_pid_state = this->pid_state::None;
+}
+
+void fire::drive::wait_drive() {
+    while (true) {
+        // compute error timeouts
+        pros::delay(fire::delay);
+    }
+}
+
+void fire::drive::set_exit_conditions(fire::pid_types pid_type, float small_error, float large_error, int small_timeout, int large_timeout, int zero_timeout) {
+    if (pid_type == fire::pid_types::Drive) {
+        this->drive_small_error = small_error;
+        this->drive_large_error = large_error;
+        this->drive_small_timeout = small_timeout;
+        this->drive_large_timeout = large_timeout;
+        this->drive_zero_timeout = zero_timeout;
+    } else if (pid_type == fire::pid_types::Turn) {
+        this->turn_small_error = small_error;
+        this->turn_large_error = large_error;
+        this->turn_small_timeout = small_timeout;
+        this->turn_large_timeout = large_timeout;
+        this->turn_zero_timeout = zero_timeout;
+    } else if (pid_type == fire::pid_types::Swing) {
+        this->swing_small_error = small_error;
+        this->swing_large_error = large_error;
+        this->swing_small_timeout = small_timeout;
+        this->swing_large_timeout = large_timeout;
+        this->swing_zero_timeout = zero_timeout;
+    }
+}
+
+void fire::drive::set_drive_pid(float distance, int speed) {
+    // set left motor targets
+    for (int i = 0; i < this->left_drive.size(); i++) {
+        float start = left_drive[i].get_position();
+        float target = distance/this->diameter;
+        if (left_drive[i].is_reversed()) {
+            target = start-target;
+        } else {
+            target = start+target;
+        }
+        this->left_targets[i] = target;
+    }
+
+    // set right motor targets
+    for (int i = 0; i < this->right_drive.size(); i++) {
+        float start = right_drive[i].get_position();
+        float target = distance/this->diameter;
+        if (right_drive[i].is_reversed()) {
+            target = start-target;
+        } else {
+            target = start+target;
+        }
+        this->right_targets[i] = target;
     }
 }
