@@ -56,12 +56,6 @@ void fire::drive::split_arcade_flipped() {
 // AUTONOMOUS PID CONTROLS
 
 void fire::drive::init_pids() {
-    for (int i = 0; i < this->left_drive.size(); i++) {
-        this->left_drive[i].tare_position();
-    }
-    for (int i = 0; i < this->right_drive.size(); i++) {
-        this->right_drive[i].tare_position();
-    }
     pros::Task(this->drive_pid_task, (void*)this, TASK_PRIORITY_DEFAULT, TASK_STACK_DEPTH_DEFAULT, "PID Task");
 }
 
@@ -97,6 +91,7 @@ void fire::drive::drive_pid_task(void *c) {
 
                 ((fire::drive*)c)->left_drive[i] = volts;
                 fire::lcd::println(2, "Left Volts: " + std::to_string(volts));
+                fire::lcd::println(4+i, "Left Motor [" + std::to_string(i) + "]: " = std::to_string(error));
             }
             // calculate pid for each right motor
             for (int i = 0; i < ((fire::drive*)c)->right_drive.size(); i++) {
@@ -149,19 +144,19 @@ void fire::drive::wait_drive() {
         if (!zero_time) {
             zero_start = pros::millis();
         } else if (pros::millis() > zero_start + this->drive_zero_timeout) {
-            return;
+            break;
         }
 
         if (!large_time) {
             large_start = pros::millis();
         } else if (pros::millis() > large_start + this->drive_large_timeout) {
-            return;
+            break;
         }
 
         if (!small_time) {
             small_start = pros::millis();
         } else if (pros::millis() > small_start + this->drive_small_timeout) {
-            return;
+            break;
         }
 
         if (this->current_pid_state == fire::drive::pid_state::Drive) {
@@ -189,6 +184,7 @@ void fire::drive::wait_drive() {
 
         pros::delay(fire::delay);
     }
+    this->current_pid_state = this->None;
 }
 
 void fire::drive::set_exit_conditions(fire::pid_types pid_type, float small_error, float large_error, int small_timeout, int large_timeout, int zero_timeout) {
@@ -225,25 +221,31 @@ void fire::drive::set_drive_pid(float distance, int speed) {
     // set left motor targets
     for (int i = 0; i < this->left_drive.size(); i++) {
         float start = left_drive[i].get_position();
-        float target = (distance/this->diameter) * (200/this->gearRatio);
+        float target = (distance/this->diameter)*(float(200)/this->rpm);
         if (left_drive[i].is_reversed()) {
             target = start+target;
         } else {
             target = start-target;
         }
-        this->left_targets[i] = target;
+        this->left_targets[i] = target*(float(2)/3);
+        this->left_drive[i].tare_position();
+        this->left_total_error[i] = 0.0;
+        this->left_prev_errors[i] = 0.0;
     }
 
     // set right motor targets
     for (int i = 0; i < this->right_drive.size(); i++) {
         float start = right_drive[i].get_position();
-        float target = distance/this->diameter;
+        float target = (distance/this->diameter)*(float(200)/this->rpm);
         if (right_drive[i].is_reversed()) {
             target = start-target;
         } else {
             target = start+target;
         }
-        this->right_targets[i] = target;
+        this->right_targets[i] = target*(float(2)/3);
+        this->right_drive[i].tare_position();
+        this->right_total_error[i] = 0.0;
+        this->right_prev_errors[i] = 0.0;
     }
 
     this->current_pid_state = pid_state::Drive;

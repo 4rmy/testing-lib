@@ -1,6 +1,5 @@
 #include "main.h"
 #include "autons.h"
-#include <string>
 
 fire::drive chassis{
 	{-1, -3, -5},
@@ -24,6 +23,7 @@ void disabled() {}
 void competition_initialize() {}
 
 void autonomous() {
+	// necessary if you are using pid loops for accurate movements
 	chassis.init_pids();
 
 	test_auton();
