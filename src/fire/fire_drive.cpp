@@ -68,10 +68,44 @@ void fire::drive::init_pids() {
         DRIVE PID TASK
 */
 void fire::drive::drive_pid_task(void *c) {
-
     while (pros::competition::is_autonomous()) {
         if (((fire::drive*)c)->current_pid_state == fire::drive::pid_state::Drive) {
-            // compute drive pids
+            // calculate pid for each left motor
+            for (int i = 0; i < ((fire::drive*)c)->left_drive.size(); i++) {
+                // error calculation
+                float error = ((fire::drive*)c)->left_targets[i] - ((fire::drive*)c)->left_drive[i].get_position();
+                float diff = ((fire::drive*)c)->left_prev_errors[i] - error;
+                ((fire::drive*)c)->left_prev_errors[i] = error;
+                ((fire::drive*)c)->left_total_error[i] += error;
+
+                // p,i,d calculations
+                float proportional = ((fire::drive*)c)->drive_Kp * error;
+                float integral = ((fire::drive*)c)->drive_Ki * ((fire::drive*)c)->left_total_error[i];
+                float derivitive = ((fire::drive*)c)->drive_Kd * diff;
+
+                // calc total power
+                float power = proportional + integral + derivitive;
+
+                ((fire::drive*)c)->left_drive[i] = power * ((fire::drive*)c)->speed;
+            }
+            // calculate pid for each right motor
+            for (int i = 0; i < ((fire::drive*)c)->right_drive.size(); i++) {
+                // error calculation
+                float error = ((fire::drive*)c)->right_targets[i] - ((fire::drive*)c)->right_drive[i].get_position();
+                float diff = ((fire::drive*)c)->right_prev_errors[i] - error;
+                ((fire::drive*)c)->right_prev_errors[i] = error;
+                ((fire::drive*)c)->right_total_error[i] += error;
+
+                // p,i,d calculations
+                float proportional = ((fire::drive*)c)->drive_Kp * error;
+                float integral = ((fire::drive*)c)->drive_Ki * ((fire::drive*)c)->right_prev_errors[i];
+                float derivitive = ((fire::drive*)c)->drive_Kd * diff;
+
+                // calc total power
+                float power = proportional + integral + derivitive;
+
+                ((fire::drive*)c)->right_drive[i] = power * ((fire::drive*)c)->speed;
+            }
         }
         pros::delay(fire::delay);
     }
@@ -86,7 +120,9 @@ void fire::drive::stop_pid() {
 
 void fire::drive::wait_drive() {
     while (true) {
-        // compute error timeouts
+        if (this->current_pid_state == fire::drive::pid_state::Drive) {
+            
+        }
         pros::delay(fire::delay);
     }
 }
@@ -117,7 +153,7 @@ void fire::drive::set_drive_pid(float distance, int speed) {
     // set left motor targets
     for (int i = 0; i < this->left_drive.size(); i++) {
         float start = left_drive[i].get_position();
-        float target = distance/this->diameter;
+        float target = (distance/this->diameter) * (200/this->gearRatio);
         if (left_drive[i].is_reversed()) {
             target = start-target;
         } else {

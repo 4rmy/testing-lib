@@ -60,12 +60,16 @@ namespace fire {
                     left_drive.push_back(pros::Motor(left_motor_ports[i]));
                     left_drive[i].set_encoder_units(pros::MotorEncoderUnits::rotations);
                     left_targets.push_back(0.0);
+                    left_prev_errors.push_back(0.0);
+                    left_total_error.push_back(0.0);
                 }
                 // create right drive motors
                 for (int i = 0; i < right_motor_ports.size(); i++) {
                     right_drive.push_back(pros::Motor(right_motor_ports[i]));
                     right_drive[i].set_encoder_units(pros::MotorEncoderUnits::rotations);
                     right_targets.push_back(0.0);
+                    right_prev_errors.push_back(0.0);
+                    right_total_error.push_back(0.0);
                 }
                 // create IMU reference
                 pros::Imu temp_imu(imu_port);
@@ -91,6 +95,13 @@ namespace fire {
             // drive info
             std::vector<float> left_targets;
             std::vector<float> right_targets;
+
+            std::vector<float> left_prev_errors;
+            std::vector<float> right_prev_errors;
+
+            std::vector<float> left_total_error;
+            std::vector<float> right_total_error;
+
             int rpm;
             float gearRatio;
             float diameter;
