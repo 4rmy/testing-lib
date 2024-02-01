@@ -1,5 +1,7 @@
 #include "main.h"
 #include "autons.h"
+#include <cstddef>
+#include <string>
 
 fire::drive chassis{
 	{-1, -3, -5},
@@ -13,9 +15,15 @@ fire::drive chassis{
 void initialize() {
 	// initialize the fire-lib console lcd
 	fire::lcd::initialize();
+	fire::lcd::print("Calabrating IMU...");
+	chassis.imu.reset(true);
+	fire::lcd::print("IMU Calabrated.");
 
 	// initialize exit conditions for autonomous
 	set_exit_conditions();
+	// clear the display
+	fire::lcd::clear();
+	fire::cont.rumble(".");
 }
 
 void disabled() {}
@@ -34,7 +42,7 @@ void opcontrol() {
 	//pros::Motor test(12);
 
 	while (true) {
-		fire::lcd::clear();
+		fire::lcd::println(0, "IMU Rotation: " + std::to_string(chassis.imu.get_rotation()));
 		// drive controlls. uncomment the ONE that you are using
 		//chassis.tank_control();
 		chassis.split_arcade();

@@ -150,8 +150,8 @@ class Device {
 								_port(port), 
 								_deviceType(deviceType) {}
 
-	protected:
-	const std::uint8_t _port;
+	public:
+	std::uint8_t _port;
 	const enum DeviceType _deviceType = pros::DeviceType::none;
 	
 	///@}

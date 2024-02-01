@@ -73,9 +73,9 @@ namespace fire {
                     right_prev_errors.push_back(0.0);
                     right_total_error.push_back(0.0);
                 }
-                // create IMU reference
-                pros::Imu temp_imu(imu_port);
-                imu = &temp_imu;
+                // set IMU
+                imu._port = imu_port;
+                
                 // set the motor's rpm
                 rpm = motor_rpm;
                 // set the drive gear ratio
@@ -84,7 +84,7 @@ namespace fire {
                 diameter = wheel_diameter;
             };
 
-            pros::Imu *imu = nullptr;
+            pros::Imu imu = pros::Imu(0);
 
             // driver control types
             // left stick is left drive, Right stick is right drive
@@ -162,5 +162,8 @@ namespace fire {
 
             // set the target for the drive
             void set_drive_pid(float distance, int speed);
+
+            // set the target for turning
+            void set_turn_pid(float deg, int speed);
     };
 }

@@ -63,7 +63,6 @@ void fire::drive::init_pids() {
         DRIVE PID TASK
 */
 void fire::drive::drive_pid_task(void *c) {
-    fire::lcd::print("PID started");
     while (true) {
         if (((fire::drive*)c)->current_pid_state == fire::drive::pid_state::Drive) {
             // calculate pid for each left motor
@@ -90,8 +89,6 @@ void fire::drive::drive_pid_task(void *c) {
                 }
 
                 ((fire::drive*)c)->left_drive[i] = volts;
-                fire::lcd::println(2, "Left Volts: " + std::to_string(volts));
-                fire::lcd::println(4+i, "Left Motor [" + std::to_string(i) + "]: " = std::to_string(error));
             }
             // calculate pid for each right motor
             for (int i = 0; i < ((fire::drive*)c)->right_drive.size(); i++) {
@@ -117,12 +114,10 @@ void fire::drive::drive_pid_task(void *c) {
                 }
 
                 ((fire::drive*)c)->right_drive[i] = volts;
-                fire::lcd::println(3, "Right Volts: " + std::to_string(volts));
             }
         }
         pros::delay(fire::delay);
     }
-    fire::lcd::print("PID ended");
 }
 /*
         DRIVE PID TASK
@@ -218,6 +213,8 @@ void fire::drive::set_pid(fire::pid_types pid_type, float kp, float ki, float kd
 }
 
 void fire::drive::set_drive_pid(float distance, int speed) {
+    this->current_pid_state = pid_state::None;
+    
     // set left motor targets
     for (int i = 0; i < this->left_drive.size(); i++) {
         float start = left_drive[i].get_position();
@@ -248,6 +245,15 @@ void fire::drive::set_drive_pid(float distance, int speed) {
         this->right_prev_errors[i] = 0.0;
     }
 
-    this->current_pid_state = pid_state::Drive;
     this->speed = speed;
+    this->current_pid_state = pid_state::Drive;
+}
+
+void fire::drive::set_turn_pid(float deg, int speed) {
+    this->current_pid_state = pid_state::None;
+
+
+
+    this->speed = speed;
+    this->current_pid_state = pid_state::Drive;
 }
