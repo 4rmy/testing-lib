@@ -37,6 +37,8 @@ namespace fire {
             // allow printing to the screen
             static void print(std::string str);
 
+            static void println(int line, std::string str);
+
             // clear the screen
             static void clear();
     };
@@ -152,6 +154,8 @@ namespace fire {
 
             // exit conditions
             void set_exit_conditions(fire::pid_types pid_type, float small_error, float large_error, int small_timeout, int large_timeout, int zero_timeout);
+
+            void set_pid(fire::pid_types pid_type, float kp, float ki, float kd);
 
             // wait for current drive conditions to be met
             void wait_drive();

@@ -97,6 +97,23 @@ void fire::lcd::print(std::string str) {
 
     lv_label_set_text(console_text, full_console.c_str());
 }
+void fire::lcd::println(int line, std::string str) {
+    // exit if pros not initialized
+    if (!fire::lcd::initialized) {return;}
+
+    // update line
+    display[line] = str;
+
+    // update display
+    std::string full_console = "";
+
+    // loop lines and add them to the console
+    for (int j = 0; j < 14; j++) {
+        full_console.append(display[j] + "\n");
+    }
+
+    lv_label_set_text(console_text, full_console.c_str());
+}
 
 void fire::lcd::clear() {
     for (int i = 0; i < 14; i++) {
