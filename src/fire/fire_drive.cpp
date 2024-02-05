@@ -1,7 +1,7 @@
 #include "fire.h"
+#include "pros/abstract_motor.hpp"
 #include "pros/misc.hpp"
 #include "pros/rtos.h"
-#include <algorithm>
 #include <string>
 
 // DRIVE CONTROLS
@@ -53,6 +53,15 @@ void fire::drive::split_arcade_flipped() {
     }
 }
 
+void fire::drive::set_break_mode(pros::MotorBrake mode) {
+    for (int i = 0; i < this->left_drive.size(); i++) {
+        this->left_drive[i].set_brake_mode(mode);
+    }
+    for (int i = 0; i < this->right_drive.size(); i++) {
+        this->right_drive[i].set_brake_mode(mode);
+    }
+}
+
 // AUTONOMOUS PID CONTROLS
 
 void fire::drive::init_pids() {
@@ -82,9 +91,9 @@ void fire::drive::drive_pid_task(void *c) {
                 float power = proportional + integral + derivitive;
 
                 float volts = power * ((fire::drive*)c)->speed;
-                if (volts < -127) {
+                if (volts < -((fire::drive*)c)->speed) {
                     volts = -127;
-                } else if (volts > 127) {
+                } else if (volts > ((fire::drive*)c)->speed) {
                     volts = 127;
                 }
 
@@ -107,13 +116,45 @@ void fire::drive::drive_pid_task(void *c) {
                 float power = proportional + integral + derivitive;
 
                 float volts = power * ((fire::drive*)c)->speed;
-                if (volts < -127) {
+                if (volts < -((fire::drive*)c)->speed) {
                     volts = -127;
-                } else if (volts > 127) {
+                } else if (volts > ((fire::drive*)c)->speed) {
                     volts = 127;
                 }
 
                 ((fire::drive*)c)->right_drive[i] = volts;
+            }
+        } else if (((fire::drive*)c)->current_pid_state == fire::drive::pid_state::Turn) {
+            float error = ((fire::drive*)c)->deg_target - ((fire::drive*)c)->imu.get_rotation();
+            float diff = ((fire::drive*)c)->deg_prev_error - error;
+            ((fire::drive*)c)->deg_prev_error = error;
+            ((fire::drive*)c)->deg_total_error += error;
+
+            float proportional = ((fire::drive*)c)->turn_Kp * error;
+            float integral = ((fire::drive*)c)->turn_Ki * ((fire::drive*)c)->deg_total_error;
+            float derivitive = ((fire::drive*)c)->turn_Kd * diff;
+
+            float power = proportional + integral + derivitive;
+
+            float volts = power * ((fire::drive*)c)->speed;
+            if (volts < -((fire::drive*)c)->speed) {
+                volts = -127;
+            } else if (volts > ((fire::drive*)c)->speed) {
+                volts = 127;
+            }
+
+            for (int i = 0; i < ((fire::drive*)c)->left_drive.size(); i++) {
+                ((fire::drive*)c)->left_drive[i] = volts;
+            }
+            for (int i = 0; i < ((fire::drive*)c)->right_drive.size(); i++) {
+                ((fire::drive*)c)->right_drive[i] = -volts;
+            }
+        } else if (((fire::drive*)c)->current_pid_state == fire::drive::pid_state::None) {
+            for (int i = 0; i < ((fire::drive*)c)->left_drive.size(); i++) {
+                ((fire::drive*)c)->left_drive[i] = 0;
+            }
+            for (int i = 0; i < ((fire::drive*)c)->right_drive.size(); i++) {
+                ((fire::drive*)c)->right_drive[i] = 0;
             }
         }
         pros::delay(fire::delay);
@@ -136,29 +177,31 @@ void fire::drive::wait_drive() {
     bool small_time = false;
 
     while (true) {
-        if (!zero_time) {
-            zero_start = pros::millis();
-        } else if (pros::millis() > zero_start + this->drive_zero_timeout) {
-            break;
-        }
-
-        if (!large_time) {
-            large_start = pros::millis();
-        } else if (pros::millis() > large_start + this->drive_large_timeout) {
-            break;
-        }
-
-        if (!small_time) {
-            small_start = pros::millis();
-        } else if (pros::millis() > small_start + this->drive_small_timeout) {
-            break;
-        }
-
         if (this->current_pid_state == fire::drive::pid_state::Drive) {
+            if (!zero_time) {
+                zero_start = pros::millis();
+            } else if (pros::millis() > zero_start + this->drive_zero_timeout) {
+                break;
+            }
+
+            if (!large_time) {
+                large_start = pros::millis();
+            } else if (pros::millis() > large_start + this->drive_large_timeout) {
+                break;
+            }
+
+            if (!small_time) {
+                small_start = pros::millis();
+            } else if (pros::millis() > small_start + this->drive_small_timeout) {
+                break;
+            }
+
             small_time = true;
             large_time = true;
+            zero_time = true;
             for (int i = 0; i < this->left_drive.size(); i++) {
-                int distance = (this->left_prev_errors[i] * (200/this->gearRatio)) / this->diameter;
+                float distance = std::abs((this->left_prev_errors[i] * (200/this->gearRatio)) / this->diameter);
+
                 if (!(distance < this->drive_small_error)) {
                     small_time = false;
                 }
@@ -167,13 +210,49 @@ void fire::drive::wait_drive() {
                 }
             }
             for (int i = 0; i < this->right_drive.size(); i++) {
-                int distance = (this->right_prev_errors[i] * (200/this->gearRatio)) / this->diameter;
+                int distance = std::abs((this->right_prev_errors[i] * (200/this->gearRatio)) / this->diameter);
                 if (!(distance < this->drive_small_error)) {
                     small_time = false;
                 }
                 if (!(distance < this->drive_large_error)) {
                     large_time = false;
                 }
+            }
+            float avg_speed = (this->imu.get_accel().x + this->imu.get_accel().y + this->imu.get_accel().z)/3;
+            if (!(std::abs(avg_speed) < 0.4)) {
+                zero_time = false;
+            }
+        } else if (this->current_pid_state == fire::drive::pid_state::Turn) {
+            if (!zero_time) {
+                zero_start = pros::millis();
+            } else if (pros::millis() > zero_start + this->turn_zero_timeout) {
+                break;
+            }
+            
+            if (!large_time) {
+                large_start = pros::millis();
+            } else if (pros::millis() > large_start + this->turn_large_timeout) {
+                break;
+            }
+
+            if (!small_time) {
+                small_start = pros::millis();
+            } else if (pros::millis() > small_start + this->turn_small_timeout) {
+                break;
+            }
+        
+            small_time = true;
+            large_time = true;
+            zero_time = true;
+            float deg = std::abs(this->deg_target - this->imu.get_rotation());
+            if (!(deg < this->turn_small_error)) {
+                small_time = false;
+            }
+            if (!(deg < this->turn_large_error)) {
+                large_time = false;
+            }
+            if (!(std::abs(this->deg_prev_error) < 0.5)) {
+                zero_time = false;
             }
         }
 
@@ -209,6 +288,10 @@ void fire::drive::set_pid(fire::pid_types pid_type, float kp, float ki, float kd
         this->drive_Kp = kp;
         this->drive_Ki = ki;
         this->drive_Kd = kd;
+    } else if (pid_type == fire::pid_types::Turn) {
+        this->turn_Kp = kp;
+        this->turn_Ki = ki;
+        this->turn_Kd = kd;
     }
 }
 
@@ -252,8 +335,10 @@ void fire::drive::set_drive_pid(float distance, int speed) {
 void fire::drive::set_turn_pid(float deg, int speed) {
     this->current_pid_state = pid_state::None;
 
-
+    this->deg_target = deg;
+    this->deg_prev_error = 0.0;
+    this->deg_total_error = 0.0;
 
     this->speed = speed;
-    this->current_pid_state = pid_state::Drive;
+    this->current_pid_state = pid_state::Turn;
 }

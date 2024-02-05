@@ -423,7 +423,7 @@
       "icon": "pizza",
       "description": "Testing code for vex robot",
       "slot": 8,
-      "after": "run"
+      "after": "screen"
     }
   }
 }

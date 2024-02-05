@@ -1,5 +1,4 @@
 #include "liblvgl/lvgl.h"
-#include <cstddef>
 #include <string>
 #include <vector>
 #include "api.h"
@@ -93,6 +92,8 @@ namespace fire {
             void split_arcade();
             // Right stick is fwd or rev, Left stick is turning
             void split_arcade_flipped();
+            // set brake for all motors
+            void set_break_mode(pros::MotorBrake mode);
 
             // drive info
             std::vector<float> left_targets;
@@ -104,6 +105,10 @@ namespace fire {
             std::vector<float> left_total_error;
             std::vector<float> right_total_error;
 
+            float deg_target = 0.0;
+            float deg_prev_error = 0.0;
+            float deg_total_error = 0.0;
+
             int rpm;
             float gearRatio;
             float diameter;
@@ -112,6 +117,9 @@ namespace fire {
             float drive_Kp = 0.0;
             float drive_Ki = 0.0;
             float drive_Kd = 0.0;
+            float turn_Kp = 0.0;
+            float turn_Ki = 0.0;
+            float turn_Kd = 0.0;
             // exit conditions
             // drive
             float drive_small_error;

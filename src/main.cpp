@@ -1,6 +1,5 @@
 #include "main.h"
 #include "autons.h"
-#include <cstddef>
 #include <string>
 
 fire::drive chassis{
@@ -33,24 +32,21 @@ void competition_initialize() {}
 void autonomous() {
 	// necessary if you are using pid loops for accurate movements
 	chassis.init_pids();
+	chassis.set_break_mode(pros::v5::MotorBrake::hold);
 
 	test_auton();
 }
 
 void opcontrol() {
+	chassis.set_break_mode(pros::v5::MotorBrake::coast);
 	pros::Controller controller(pros::E_CONTROLLER_MASTER);
 	//pros::Motor test(12);
 
 	while (true) {
-		fire::lcd::println(0, "IMU Rotation: " + std::to_string(chassis.imu.get_rotation()));
 		// drive controlls. uncomment the ONE that you are using
 		//chassis.tank_control();
 		chassis.split_arcade();
 		//chassis.split_arcade_flipped();
-
-		if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
-			autonomous();
-		}
 
 		// delay to fix brain freezing
 		pros::delay(fire::delay);
