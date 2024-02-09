@@ -1,4 +1,5 @@
 #include "liblvgl/lvgl.h"
+#include <functional>
 #include <string>
 #include <vector>
 #include "api.h"
@@ -173,5 +174,69 @@ namespace fire {
 
             // set the target for turning
             void set_turn_pid(float deg, int speed);
+
+            // set the tank speeds to control drive outside of pid
+            void set_tank(int left, int right);
+
+            // active braking info
+            void set_active_breaking(float kp);
+            void init_active_breaking();
+            static void active_breaking_task(void *c);
+
+            float active_breaking_kp = 0.0;
+    };
+
+    class as {
+        public:
+            class Auton {
+                public:
+                    std::string name;
+                    std::function<void()> func;
+
+                    Auton(std::string name, std::function<void()> function) {
+                        this->name = name;
+                        this->func = function;
+                    }
+            };
+
+            static inline std::vector<Auton> autons = {};
+            static inline int page = 0;
+
+            static inline void add_autons(std::vector<Auton> auton_list) {
+                autons = auton_list;
+            }
+
+            static inline void init_selector() {
+                fire::lcd::clear();
+                if (autons.size() == 0) {
+                    fire::lcd::println(0, "No autons");
+                } else {
+                    fire::lcd::println(0, autons[page].name);
+                    fire::lcd::println(1, "Page " + std::to_string(page+1));
+                }
+            }
+
+            static inline void page_up() {
+                page++;
+                if (page > autons.size()-1) {
+                    page = 0;
+                }
+                fire::lcd::println(0, autons[page].name);
+                fire::lcd::println(1, "Page " + std::to_string(page+1));
+            }
+
+            static inline void page_down() {
+                page--;
+                if (page < 0) {
+                    page = autons.size()-1;
+                }
+                fire::lcd::println(0, autons[page].name);
+                fire::lcd::println(1, "Page " + std::to_string(page+1));
+            }
+
+            static inline void call_selected_auton() {
+                fire::lcd::clear();
+                autons[page].func();
+            }
     };
 }

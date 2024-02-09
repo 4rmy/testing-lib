@@ -1,5 +1,6 @@
 #include "fire.h"
 #include "pros/abstract_motor.hpp"
+#include "pros/misc.h"
 #include "pros/misc.hpp"
 #include "pros/rtos.h"
 #include <string>
@@ -65,8 +66,8 @@ void fire::drive::set_break_mode(pros::MotorBrake mode) {
 // AUTONOMOUS PID CONTROLS
 
 void fire::drive::init_pids() {
-    pros::Task(this->drive_pid_task, (void*)this, TASK_PRIORITY_DEFAULT, TASK_STACK_DEPTH_DEFAULT, "PID Task");
     this->imu.tare();
+    pros::Task(this->drive_pid_task, (void*)this, TASK_PRIORITY_DEFAULT, TASK_STACK_DEPTH_DEFAULT, "PID Task");
 }
 
 /*
@@ -342,4 +343,44 @@ void fire::drive::set_turn_pid(float deg, int speed) {
 
     this->speed = speed;
     this->current_pid_state = pid_state::Turn;
+}
+
+void fire::drive::set_tank(int left, int right) {
+    for (int i = 0; i < this->left_drive.size(); i++) {
+        left_drive[i] = left;
+    }
+    for (int i = 0; i < this->right_drive.size(); i++) {
+        right_drive[i] = right;
+    }
+}
+
+// active breaking mode
+void fire::drive::set_active_breaking(float kp) {
+    this->active_breaking_kp = kp;
+}
+
+void fire::drive::init_active_breaking() {
+    pros::Task(this->active_breaking_task, (void*)this, TASK_PRIORITY_DEFAULT, TASK_STACK_DEPTH_DEFAULT, "Active Breaking Task");
+}
+
+void fire::drive::active_breaking_task(void *c) {
+    while (true)  {
+        if (!(pros::competition::is_autonomous() || pros::competition::is_disabled())) {
+            if (
+                std::abs(fire::cont.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X)) != 0 ||
+                std::abs(fire::cont.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)) != 0 ||
+                std::abs(fire::cont.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X)) != 0 ||
+                std::abs(fire::cont.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y)) != 0
+                ) {
+                    fire::lcd::println(2, "Setting active break");
+                    ((fire::drive*)c)->set_pid(fire::pid_types::Drive, ((fire::drive*)c)->active_breaking_kp, 0.0, 0.0);
+                    ((fire::drive*)c)->set_drive_pid(0, 127);
+                    ((fire::drive*)c)->current_pid_state = fire::drive::None;
+                } else {
+                    fire::lcd::println(2, "Using active break");
+                    ((fire::drive*)c)->current_pid_state = fire::drive::Drive;
+                }
+        }
+        pros::delay(fire::delay);
+    }
 }

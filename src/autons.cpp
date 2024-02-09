@@ -16,18 +16,28 @@ void set_exit_conditions() {
 void test_auton() {
     fire::lcd::print("Auton Started");
 
-    /*
     fire::lcd::print("Driving Forward");
     chassis.set_drive_pid(12, DRIVE_SPEED);
     chassis.wait_drive();
 
     fire::lcd::print("Driving Backwards");
-    chassis.set_drive_pid(-12, DRIVE_SPEED);
+    chassis.set_drive_pid(-24, DRIVE_SPEED);
     chassis.wait_drive();
-    */
+
+    fire::lcd::print("Driving to beginning");
+    chassis.set_drive_pid(12, DRIVE_SPEED);
+    chassis.wait_drive();
 
     fire::lcd::print("Turning Right");
     chassis.set_turn_pid(90, TURN_SPEED);
+    chassis.wait_drive();
+
+    fire::lcd::print("Turning Left");
+    chassis.set_turn_pid(-90, TURN_SPEED);
+    chassis.wait_drive();
+
+    fire::lcd::print("Straightning");
+    chassis.set_turn_pid(0, TURN_SPEED);
     chassis.wait_drive();
 
     fire::lcd::print("Auton Finished");
