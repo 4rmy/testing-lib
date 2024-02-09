@@ -35,12 +35,12 @@ void autonomous() {
 	chassis.set_break_mode(pros::v5::MotorBrake::hold);
 
 	test_auton();
+	chassis.current_pid_state = fire::drive::None;
 }
 
 void opcontrol() {
 	chassis.set_break_mode(pros::v5::MotorBrake::coast);
 	pros::Controller controller(pros::E_CONTROLLER_MASTER);
-	//pros::Motor test(12);
 
 	while (true) {
 		// drive controlls. uncomment the ONE that you are using

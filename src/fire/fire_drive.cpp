@@ -66,6 +66,7 @@ void fire::drive::set_break_mode(pros::MotorBrake mode) {
 
 void fire::drive::init_pids() {
     pros::Task(this->drive_pid_task, (void*)this, TASK_PRIORITY_DEFAULT, TASK_STACK_DEPTH_DEFAULT, "PID Task");
+    this->imu.tare();
 }
 
 /*
@@ -78,7 +79,7 @@ void fire::drive::drive_pid_task(void *c) {
             for (int i = 0; i < ((fire::drive*)c)->left_drive.size(); i++) {
                 // error calculation
                 float error = ((fire::drive*)c)->left_targets[i] - ((fire::drive*)c)->left_drive[i].get_position();
-                float diff = ((fire::drive*)c)->left_prev_errors[i] - error;
+                float diff = error - ((fire::drive*)c)->left_prev_errors[i];
                 ((fire::drive*)c)->left_prev_errors[i] = error;
                 ((fire::drive*)c)->left_total_error[i] += error;
 
@@ -103,7 +104,7 @@ void fire::drive::drive_pid_task(void *c) {
             for (int i = 0; i < ((fire::drive*)c)->right_drive.size(); i++) {
                 // error calculation
                 float error = ((fire::drive*)c)->right_targets[i] - ((fire::drive*)c)->right_drive[i].get_position();
-                float diff = ((fire::drive*)c)->right_prev_errors[i] - error;
+                float diff = error - ((fire::drive*)c)->right_prev_errors[i];
                 ((fire::drive*)c)->right_prev_errors[i] = error;
                 ((fire::drive*)c)->right_total_error[i] += error;
 
@@ -126,7 +127,7 @@ void fire::drive::drive_pid_task(void *c) {
             }
         } else if (((fire::drive*)c)->current_pid_state == fire::drive::pid_state::Turn) {
             float error = ((fire::drive*)c)->deg_target - ((fire::drive*)c)->imu.get_rotation();
-            float diff = ((fire::drive*)c)->deg_prev_error - error;
+            float diff = error - ((fire::drive*)c)->deg_prev_error;
             ((fire::drive*)c)->deg_prev_error = error;
             ((fire::drive*)c)->deg_total_error += error;
 
@@ -300,6 +301,7 @@ void fire::drive::set_drive_pid(float distance, int speed) {
     
     // set left motor targets
     for (int i = 0; i < this->left_drive.size(); i++) {
+        this->left_drive[i].tare_position();
         float start = left_drive[i].get_position();
         float target = (distance/this->diameter)*(float(200)/this->rpm);
         if (left_drive[i].is_reversed()) {
@@ -308,13 +310,13 @@ void fire::drive::set_drive_pid(float distance, int speed) {
             target = start-target;
         }
         this->left_targets[i] = target*(float(2)/3);
-        this->left_drive[i].tare_position();
         this->left_total_error[i] = 0.0;
         this->left_prev_errors[i] = 0.0;
     }
 
     // set right motor targets
     for (int i = 0; i < this->right_drive.size(); i++) {
+        this->right_drive[i].tare_position();
         float start = right_drive[i].get_position();
         float target = (distance/this->diameter)*(float(200)/this->rpm);
         if (right_drive[i].is_reversed()) {
@@ -323,7 +325,6 @@ void fire::drive::set_drive_pid(float distance, int speed) {
             target = start+target;
         }
         this->right_targets[i] = target*(float(2)/3);
-        this->right_drive[i].tare_position();
         this->right_total_error[i] = 0.0;
         this->right_prev_errors[i] = 0.0;
     }
