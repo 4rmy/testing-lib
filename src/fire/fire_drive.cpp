@@ -3,6 +3,7 @@
 #include "pros/misc.h"
 #include "pros/misc.hpp"
 #include "pros/rtos.h"
+#include <cmath>
 #include <string>
 
 // DRIVE CONTROLS
@@ -261,6 +262,37 @@ void fire::drive::wait_drive() {
         pros::delay(fire::delay);
     }
     this->current_pid_state = this->None;
+}
+
+void fire::drive::wait_until(double target) {
+    while (true) {
+        if (this->current_pid_state == pid_state::Drive) { // drive wait
+            bool break_out = true;
+            
+            for (int i = 0; i < this->left_drive.size(); i++) {
+                if ((std::abs(right_targets[i]) - std::abs(this->left_drive[i].get_position())) > this->drive_small_error) {
+                    break_out = false;
+                    break;
+                }
+            }
+            for (int i = 0; i < this->right_drive.size(); i++) {
+                if ((std::abs(left_targets[i]) - std::abs(this->right_drive[i].get_position())) > this->drive_small_error) {
+                    break_out = false;
+                    break;
+                }
+            }
+
+            if (break_out) {
+                break;
+            }
+        } else if ((this->current_pid_state == pid_state::Turn) || (this->current_pid_state == pid_state::Swing)) { // swing and turn waits
+            if ((std::abs(target) - std::abs(this->imu.get_rotation())) <= this->turn_small_error) { // within small error of the wait until
+                break; // stop blocking
+            }
+        }
+
+        pros::delay(fire::delay);
+    }
 }
 
 void fire::drive::set_exit_conditions(fire::pid_types pid_type, float small_error, float large_error, int small_timeout, int large_timeout, int zero_timeout) {

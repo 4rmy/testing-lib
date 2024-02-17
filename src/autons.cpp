@@ -29,11 +29,11 @@ void test_auton() {
     chassis.wait_drive();
 
     fire::lcd::print("Turning Right");
-    chassis.set_turn_pid(90, TURN_SPEED);
+    chassis.set_turn_pid(360, TURN_SPEED);
     chassis.wait_drive();
 
     fire::lcd::print("Turning Left");
-    chassis.set_turn_pid(-90, TURN_SPEED);
+    chassis.set_turn_pid(-360, TURN_SPEED);
     chassis.wait_drive();
 
     fire::lcd::print("Straightning");
