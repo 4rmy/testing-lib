@@ -2,17 +2,29 @@
 #include "autons.h"
 #include <string>
 
-fire::drive chassis{{1, 3, 5}, {-11, -12, -13}, 21, 600, 1, 2.75};
+fire::drive chassis{
+	{1, 3, 5},
+	{-11, -12, -13},
+	21,
+	600,
+	1,
+	2.75
+};
 
 void auton_selector_button() {
-  pros::adi::DigitalIn button('d');
-  while (true) {
-    fire::as::page_down();
-    if (button.get_new_press()) {
-      fire::as::page_up();
-    }
-    pros::delay(fire::delay);
-  }
+	// button to controll selector
+	pros::adi::DigitalIn button('d');
+
+	// constantly detect the button
+	while (true) {
+		// detect if the button is pressed down
+		if (button.get_new_press()) {
+			// increment the selected auton
+			fire::as::page_up();
+		}
+		// prevent the task from freezing
+		pros::delay(fire::delay);
+	}
 }
 
 void initialize() {
@@ -36,12 +48,15 @@ void initialize() {
   // fire::lcd::clear();
   fire::cont.rumble(".");
 
-  // auton selector button
+  // auton selector button; uncomment to enable an adi controlled auton selector
   // pros::Task(auton_selector_button, TASK_PRIORITY_DEFAULT,
   // TASK_STACK_DEPTH_DEFAULT, "Auton Selector Button");
 }
 
-void disabled() { chassis.current_pid_state = fire::drive::None; }
+void disabled() {
+	// stop pid from attempting to run
+	chassis.current_pid_state = fire::drive::None;
+}
 
 void competition_initialize() {}
 
@@ -61,14 +76,18 @@ void autonomous() {
 void opcontrol() {
   fire::as::set_visible(false);
   // fire::lcd::clear();
-  chassis.set_break_mode(pros::v5::MotorBrake::brake);
+  chassis.set_break_mode(pros::v5::MotorBrake::coast);
   pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
   while (true) {
-    // drive controlls. uncomment the ONE that you are using
+    // drive controlls; uncomment the ONE that you are using
     // chassis.tank_control();
     chassis.split_arcade();
     // chassis.split_arcade_flipped();
+
+	//
+	//	ADD DRIVER CODE HERE
+	//
 
     // delay to fix brain freezing
     pros::delay(fire::delay);

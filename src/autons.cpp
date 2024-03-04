@@ -49,13 +49,14 @@ void test_auton() {
     
     fire::lcd::print("Driving Forward");
     chassis.set_drive_pid(24, DRIVE_SPEED);
+    chassis.wait_until(12);
+    // do something after 12 inches
     chassis.wait_drive();
 
     fire::lcd::print("Driving Backwards");
     chassis.set_drive_pid(-24, DRIVE_SPEED);
     chassis.wait_drive();
     
-    /*
     fire::lcd::print("Turning Right");
     chassis.set_turn_pid(90, TURN_SPEED);
     chassis.wait_drive();
@@ -68,12 +69,8 @@ void test_auton() {
     chassis.set_turn_pid(0, TURN_SPEED);
     chassis.wait_drive();
 
-    */
+
 
     fire::lcd::print("Auton Finished");
     fire::cont.rumble(".");
-}
-
-void Auton2() {
-    
 }
