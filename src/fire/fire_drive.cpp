@@ -336,13 +336,13 @@ void fire::drive::set_drive_pid(float distance, int speed) {
     for (int i = 0; i < this->left_drive.size(); i++) {
         this->left_drive[i].tare_position();
         float start = left_drive[i].get_position();
-        float target = (distance/this->diameter)*(float(200)/this->rpm);
+        float target = (distance/(this->diameter*3.14))*(float(200)/this->rpm);
         if (left_drive[i].is_reversed()) {
-            target = start+target;
-        } else {
             target = start-target;
+        } else {
+            target = start+target;
         }
-        this->left_targets[i] = target*(float(2)/3);
+        this->left_targets[i] = target;
         this->left_total_error[i] = 0.0;
         this->left_prev_errors[i] = 0.0;
     }
@@ -351,13 +351,13 @@ void fire::drive::set_drive_pid(float distance, int speed) {
     for (int i = 0; i < this->right_drive.size(); i++) {
         this->right_drive[i].tare_position();
         float start = right_drive[i].get_position();
-        float target = (distance/this->diameter)*(float(200)/this->rpm);
+        float target = (distance/(this->diameter*3.14))*(float(200)/this->rpm);
         if (right_drive[i].is_reversed()) {
-            target = start-target;
-        } else {
             target = start+target;
+        } else {
+            target = start-target;
         }
-        this->right_targets[i] = target*(float(2)/3);
+        this->right_targets[i] = target;
         this->right_total_error[i] = 0.0;
         this->right_prev_errors[i] = 0.0;
     }
@@ -414,5 +414,16 @@ void fire::drive::active_breaking_task(void *c) {
                 }
         }
         pros::delay(fire::delay);
+    }
+}
+
+// calibrate imu
+void fire::drive::calibrate_imu() {
+    if (pros::c::get_plugged_type(21) == 6) {
+        fire::lcd::print("Calabrating IMU...");
+        this->imu.reset(true);
+        fire::lcd::print("IMU Calabrated.");
+    } else {
+        fire::lcd::print("IMU not detected on port " + std::to_string(this->imu.get_port()));
     }
 }
