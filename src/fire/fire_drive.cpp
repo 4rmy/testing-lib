@@ -419,7 +419,7 @@ void fire::drive::active_breaking_task(void *c) {
 
 // calibrate imu
 void fire::drive::calibrate_imu() {
-    if (pros::c::get_plugged_type(21) == 6) {
+    if (pros::c::get_plugged_type(this->imu.get_port()) == 6) {
         fire::lcd::print("Calabrating IMU...");
         this->imu.reset(true);
         fire::lcd::print("IMU Calabrated.");
